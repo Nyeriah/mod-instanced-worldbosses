@@ -65,15 +65,15 @@ public:
 
         for (auto token : bossIds)
         {
-
-            uint32 currentTimer = player->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME).value;
-
-            if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+            if (uint32 currentTimer = player->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME).value)
             {
-                player->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME, 0);
-                if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
+                if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                 {
-                    ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
+                    player->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME, 0);
+                    if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
+                    {
+                        ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
+                    }
                 }
             }
         }
