@@ -27,20 +27,25 @@ public:
         {
             if (Creature* creature = ObjectAccessor::GetCreature(*player, source))
             {
-                if (creature->isWorldBoss())
+                switch (creature->GetEntry())
                 {
-                    if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
-                    {
-                        uint32 currentTimer = looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
-
-                        if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                    case 6109: // Azuregos
+                    case 12397: // Lord Kazzak
+                        if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
-                            looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                            return false;
-                        }
+                            uint32 currentTimer = looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
 
-                        return time(nullptr) >= (currentTimer + creature->GetRespawnDelay());
-                    }
+                            if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                            {
+                                looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                                return false;
+                            }
+
+                            return time(nullptr) >= (currentTimer + creature->GetRespawnDelay());
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -56,60 +61,63 @@ public:
 
     void OnLogin(Player* player) override
     {
-        std::string bossIds = sConfigMgr->GetOption<std::string>("ModInstancedWorldBosses.TrackedBossIds", "");
+        std::vector<uint32> bossIds = { 6109, 12397 };
 
-        std::vector<std::string_view> tokens = Acore::Tokenize(bossIds, ' ', false);
-
-        for (auto token : tokens)
+        for (auto token : bossIds)
         {
-            if (token.empty())
-            {
-                continue;
-            }
 
             uint32 currentTimer = player->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME).value;
 
             if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
             {
                 player->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME, 0);
-                ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.");
+                if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
+                {
+                    ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
+                }
             }
         }
     }
 
     void OnCreatureKill(Player* killer, Creature* creature) override
     {
-        if (creature->isWorldBoss())
+        switch (creature->GetEntry())
         {
-            if (Group* group = killer->GetGroup())
-            {
-                for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-                {
-                    if (Player* groupMember = itr->GetSource())
-                    {
-                        if (groupMember->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME).value)
-                            continue;
+            case 6109: // Azuregos
+            case 12397: // Lord Kazzak
 
-                        groupMember->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                        if (WorldSession* session = groupMember->GetSession())
+                if (Group* group = killer->GetGroup())
+                {
+                    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+                    {
+                        if (Player* groupMember = itr->GetSource())
                         {
-                            ChatHandler(session).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(session->GetSessionDbLocaleIndex()));
+                            if (groupMember->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME).value)
+                                continue;
+
+                            groupMember->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                            if (WorldSession* session = groupMember->GetSession())
+                            {
+                                ChatHandler(session).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(session->GetSessionDbLocaleIndex()));
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                if (killer->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME).value)
-                    return;
-
-                killer->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-
-                if (WorldSession* session = killer->GetSession())
+                else
                 {
-                    ChatHandler(session).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(session->GetSessionDbLocaleIndex()));
+                    if (killer->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME).value)
+                        return;
+
+                    killer->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+
+                    if (WorldSession* session = killer->GetSession())
+                    {
+                        ChatHandler(session).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(session->GetSessionDbLocaleIndex()));
+                    }
                 }
-            }
+                break;
+            default:
+                break;
         }
     }
 };
