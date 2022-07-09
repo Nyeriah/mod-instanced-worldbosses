@@ -24,6 +24,11 @@ public:
 
     bool OnAllowedForPlayerLootCheck(Player const* player, ObjectGuid source) override
     {
+        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        {
+            return false;
+        }
+
         if (source.IsCreature())
         {
             if (Creature* creature = ObjectAccessor::GetCreature(*player, source))
@@ -75,6 +80,11 @@ public:
 
     void OnLogin(Player* player) override
     {
+        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        {
+            return;
+        }
+
         std::vector<uint32> bossIds = { 6109, 12397 };
 
         for (auto token : bossIds)
