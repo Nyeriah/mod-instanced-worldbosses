@@ -31,3 +31,12 @@ ModInstancedWorldBosses.ResetTimerSecs = 25920
 #
 
 ModInstancedWorldBosses.RespawnTimerSecs = 3600
+
+#    ModInstancedWorldBosses.PhaseBosses
+#        Description: Phases players out when engaging bosses.
+#        Default:     0 - Disabled
+#                     1 - Enabled
+#
+
+ModInstancedWorldBosses.PhaseBosses = 0
+

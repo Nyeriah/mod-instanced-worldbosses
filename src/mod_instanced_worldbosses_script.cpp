@@ -17,6 +17,12 @@ enum Settings
     SETTING_BOSS_STATUS
 };
 
+enum Phases
+{
+    PHASE_NORMAL = 1,
+    PHASE_OUTRO  = 2
+};
+
 class GlobalModInstancedBossesScript : public GlobalScript
 {
 public:
@@ -107,26 +113,84 @@ public:
         }
     }
 
-    void OnCreatureKill(Player* /*killer*/, Creature* creature) override
+    void OnPlayerEnterCombat(Player* player, Unit* enemy) override
+    {
+        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+        {
+            return;
+        }
+
+        if (enemy->ToCreature() && IsWorldBoss(enemy->GetEntry()))
+        {
+            enemy->SetPhaseMask(PHASE_OUTRO, true);
+            PhaseOutPlayers(player, PHASE_OUTRO, enemy->ToCreature());
+        }
+    }
+
+    void OnCreatureKill(Player* killer, Creature* creature) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
         {
             return;
         }
 
-        switch (creature->GetEntry())
+        if (IsWorldBoss(creature->GetEntry()))
+        {
+            creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+            creature->SaveRespawnTime();
+
+            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            {
+                creature->SetPhaseMask(PHASE_NORMAL, true);
+                PhaseOutPlayers(killer, PHASE_NORMAL, creature);
+            }
+        }
+    }
+
+    void PhaseOutPlayers(Player* source, uint8 phase, Creature* me)
+    {
+        if (Group* group = source->GetGroup())
+        {
+            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player* groupGuy = itr->GetSource();
+                if (!groupGuy)
+                {
+                    continue;
+                }
+
+                if (!groupGuy->IsInWorld())
+                {
+                    continue;
+                }
+
+                if (!groupGuy->IsWithinDist(me, 500.0f))
+                {
+                    continue;
+                }
+
+                groupGuy->SetPhaseMask(phase, true);
+            }
+        }
+        else
+        {
+            source->SetPhaseMask(phase, true);
+        }
+    }
+
+    bool IsWorldBoss(uint32 entry)
+    {
+        switch (entry)
         {
             case 6109: // Azuregos
             case 12397: // Lord Kazzak
             case 14888: // Lethon
             case 14889: // Emeriss
             case 14890: // Tauerar
-                creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
-                creature->SaveRespawnTime();
-                break;
-            default:
-                break;
+                return true;
         }
+
+        return false;
     }
 };
 
