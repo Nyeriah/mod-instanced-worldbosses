@@ -147,6 +147,26 @@ public:
         }
     }
 
+    void OnCreatureKilledByPet(Player* petOwner, Creature* creature) override
+    {
+        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        {
+            return;
+        }
+
+        if (IsWorldBoss(creature->GetEntry()))
+        {
+            creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+            creature->SaveRespawnTime();
+
+            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            {
+                creature->SetPhaseMask(PHASE_NORMAL, true);
+                PhaseOutPlayers(petOwner, PHASE_NORMAL, creature);
+            }
+        }
+    }
+
     void PhaseOutPlayers(Player* source, uint8 phase, Creature* me)
     {
         if (Group* group = source->GetGroup())
