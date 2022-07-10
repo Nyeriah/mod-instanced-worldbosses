@@ -88,7 +88,7 @@ public:
             return;
         }
 
-        std::vector<uint32> bossIds = { 6109, 12397 };
+        std::vector<uint32> bossIds = { 6109, 12397, 14888, 14889, 14890 };
 
         for (auto token : bossIds)
         {
