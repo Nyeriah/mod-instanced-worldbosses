@@ -37,6 +37,9 @@ public:
                 {
                     case 6109: // Azuregos
                     case 12397: // Lord Kazzak
+                    case 14888: // Lethon
+                    case 14889: // Emeriss
+                    case 14890: // Tauerar
                         if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
                             uint32 currentTimer = looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
@@ -101,6 +104,28 @@ public:
                     }
                 }
             }
+        }
+    }
+
+    void OnCreatureKill(Player* /*killer*/, Creature* creature) override
+    {
+        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        {
+            return;
+        }
+
+        switch (creature->GetEntry())
+        {
+            case 6109: // Azuregos
+            case 12397: // Lord Kazzak
+            case 14888: // Lethon
+            case 14889: // Emeriss
+            case 14890: // Tauerar
+                creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+                creature->SaveRespawnTime();
+                break;
+            default:
+                break;
         }
     }
 };

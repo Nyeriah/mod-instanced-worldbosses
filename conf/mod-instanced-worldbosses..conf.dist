@@ -23,3 +23,11 @@ ModInstancedWorldBosses.Enable = 0
 #
 
 ModInstancedWorldBosses.ResetTimerSecs = 25920
+
+#
+#    ModInstancedWorldBosses.RespawnTimerSecs
+#        Description: Global boss respawn timer in seconds.
+#        Default:    3600 seconds (1 hour)
+#
+
+ModInstancedWorldBosses.RespawnTimerSecs = 3600
