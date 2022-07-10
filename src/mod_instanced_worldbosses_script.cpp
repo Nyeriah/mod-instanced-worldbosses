@@ -63,7 +63,7 @@ public:
                                 return false;
                             }
 
-                            return time(nullptr) >= (currentTimer + creature->GetRespawnDelay());
+                            return time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
                         }
                         break;
                     default:
