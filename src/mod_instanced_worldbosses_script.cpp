@@ -211,6 +211,11 @@ public:
                 }
 
                 groupGuy->SetPhaseMask(phase, true);
+
+                if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+                {
+                    HandleDebuffs(groupGuy, phase);
+                }
             }
         }
         else
@@ -221,6 +226,40 @@ public:
             }
 
             source->SetPhaseMask(phase, true);
+
+            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+            {
+                HandleDebuffs(source, phase);
+            }
+        }
+    }
+
+    void HandleDebuffs(Player* player, uint8 phase)
+    {
+        std::string items = sConfigMgr->GetOption<std::string>("ModInstancedWorldBosses.DebuffCastList", "");
+
+        std::vector<std::string_view> tokens = Acore::Tokenize(items, ' ', false);
+
+        for (auto token : tokens)
+        {
+            if (token.empty())
+            {
+                continue;
+            }
+
+            std::vector<std::string_view> itemData = Acore::Tokenize(token, ':', false);
+
+            uint32 spellId = *Acore::StringTo<uint32>(itemData.at(0));
+            uint32 pct = *Acore::StringTo<uint32>(itemData.at(1));
+
+            if (phase == PHASE_OUTRO)
+            {
+                player->CastCustomSpell(spellId, SPELLVALUE_BASE_POINT0, pct, player);
+            }
+            else
+            {
+                player->RemoveAura(*Acore::StringTo<uint32>(itemData.at(0)));
+            }
         }
     }
 
