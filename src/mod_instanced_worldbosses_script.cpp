@@ -113,58 +113,70 @@ public:
             }
         }
     }
+};
 
-    void OnPlayerEnterCombat(Player* player, Unit* enemy) override
+class unit_worldbosses_script : public UnitScript
+{
+public:
+    unit_worldbosses_script() : UnitScript("unit_worldbosses_script") { }
+
+    void OnUnitEnterCombat(Unit* me, Unit* enemy) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
         {
             return;
         }
 
-        if (enemy->ToCreature() && IsWorldBoss(enemy->GetEntry()))
+        if (me->ToCreature() && IsWorldBoss(me->GetEntry()))
         {
-            enemy->SetPhaseMask(PHASE_OUTRO, true);
-            PhaseOutPlayers(player, PHASE_OUTRO, enemy->ToCreature());
+            me->SetPhaseMask(PHASE_OUTRO, true);
+
+            if (Player* player = enemy->ToPlayer())
+            {
+                PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
+                _owner = player->GetGUID();
+            }
         }
     }
 
-    void OnCreatureKill(Player* killer, Creature* creature) override
+    void OnUnitEnterEvadeMode(Unit* me, uint8 /*evadeReason*/) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
         {
             return;
         }
 
-        if (IsWorldBoss(creature->GetEntry()))
+        if (IsWorldBoss(me->GetEntry()))
         {
-            creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
-            creature->SaveRespawnTime();
-
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
-                creature->SetPhaseMask(PHASE_NORMAL, true);
-                PhaseOutPlayers(killer, PHASE_NORMAL, creature);
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
+                    PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
             }
+
+            me->SetPhaseMask(PHASE_NORMAL, true);
         }
     }
 
-    void OnCreatureKilledByPet(Player* petOwner, Creature* creature) override
+    void OnUnitDeath(Unit* me, Unit* killer) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
         {
             return;
         }
 
-        if (IsWorldBoss(creature->GetEntry()))
+        if (IsWorldBoss(me->GetEntry()))
         {
-            creature->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
-            creature->SaveRespawnTime();
+            me->ToCreature()->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+            me->SaveRespawnTime();
 
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
-                creature->SetPhaseMask(PHASE_NORMAL, true);
-                PhaseOutPlayers(petOwner, PHASE_NORMAL, creature);
+                if (Player* player = killer->ToPlayer())
+                    PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
             }
+
+            me->SetPhaseMask(PHASE_NORMAL, true);
         }
     }
 
@@ -227,6 +239,8 @@ public:
 
         return false;
     }
+
+    ObjectGuid _owner;
 };
 
 
@@ -234,4 +248,5 @@ void Addmod_instanced_worldbosses_script()
 {
     new GlobalModInstancedBossesScript();
     new ModInstancedBossesPlayerScript();
+    new unit_worldbosses_script();
 }
