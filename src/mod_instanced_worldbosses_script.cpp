@@ -250,7 +250,7 @@ public:
             std::vector<std::string_view> itemData = Acore::Tokenize(token, ':', false);
 
             uint32 spellId = *Acore::StringTo<uint32>(itemData.at(0));
-            uint32 pct = *Acore::StringTo<uint32>(itemData.at(1));
+            int32 pct = *Acore::StringTo<uint32>(itemData.at(1));
 
             if (phase == PHASE_OUTRO)
             {
