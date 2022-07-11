@@ -48,6 +48,14 @@ ModInstancedWorldBosses.PhaseBosses = 0
 
 ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing = 1
 
+#    ModInstancedWorldBosses.Tuning
+#        Description: Apply spells from the DebuffCastList.
+#        Default:     0 - Disabled
+#                     1 - Enabled
+#
+
+ModInstancedWorldBosses.Tuning = 0
+
 #    ModInstancedWorldBosses.DebuffCastList
 #        Description: Spells cast on players once the bosses are engaged, for tuning purposes.
 #        Default:     ""
