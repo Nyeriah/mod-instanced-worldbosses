@@ -43,6 +43,7 @@ public:
                 {
                     case 6109: // Azuregos
                     case 12397: // Lord Kazzak
+                    case 14887: // Ysondre
                     case 14888: // Lethon
                     case 14889: // Emeriss
                     case 14890: // Tauerar
@@ -94,7 +95,7 @@ public:
             return;
         }
 
-        std::vector<uint32> bossIds = { 6109, 12397, 14888, 14889, 14890 };
+        std::vector<uint32> bossIds = { 6109, 12397, 14887, 14888, 14889, 14890 };
 
         for (auto token : bossIds)
         {
@@ -217,6 +218,7 @@ public:
         {
             case 6109: // Azuregos
             case 12397: // Lord Kazzak
+            case 14887: // Ysondre
             case 14888: // Lethon
             case 14889: // Emeriss
             case 14890: // Tauerar
