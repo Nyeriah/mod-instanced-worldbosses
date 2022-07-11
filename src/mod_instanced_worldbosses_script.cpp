@@ -50,9 +50,10 @@ public:
                         if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
                             uint32 currentTimer = looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
-
+                            LOG_ERROR("sql.sql", "Step one");
                             if (!looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
                             {
+                                LOG_ERROR("sql.sql", "step two");
                                 looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
                                 looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS, 1);
                                 if (looter->GetSession())
@@ -250,7 +251,7 @@ public:
             std::vector<std::string_view> itemData = Acore::Tokenize(token, ':', false);
 
             uint32 spellId = *Acore::StringTo<uint32>(itemData.at(0));
-            int32 pct = *Acore::StringTo<uint32>(itemData.at(1));
+            int32 pct = *Acore::StringTo<int32>(itemData.at(1));
 
             if (phase == PHASE_OUTRO)
             {
