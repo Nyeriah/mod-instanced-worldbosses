@@ -40,3 +40,11 @@ ModInstancedWorldBosses.RespawnTimerSecs = 3600
 
 ModInstancedWorldBosses.PhaseBosses = 0
 
+#    ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing
+#        Description: Skip phasing saved players when engaging bosses.
+#        Default:     0 - Disabled
+#                     1 - Enabled
+#
+
+ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing = 1
+

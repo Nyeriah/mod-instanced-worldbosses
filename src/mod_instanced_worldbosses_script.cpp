@@ -189,11 +189,24 @@ public:
                     continue;
                 }
 
+                if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing", 0))
+                {
+                    if (groupGuy->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+                    {
+                        continue;
+                    }
+                }
+
                 groupGuy->SetPhaseMask(phase, true);
             }
         }
         else
         {
+            if (source->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+            {
+                return;
+            }
+
             source->SetPhaseMask(phase, true);
         }
     }
