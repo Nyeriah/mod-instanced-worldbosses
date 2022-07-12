@@ -120,7 +120,7 @@ public:
                 }
                 else
                 {
-                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME, 1);
+                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_STATUS, 1);
                 }
             }
         }
