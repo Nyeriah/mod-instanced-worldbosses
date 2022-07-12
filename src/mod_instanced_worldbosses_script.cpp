@@ -200,7 +200,7 @@ public:
                 {
                     continue;
                 }
-                
+
                 if (!groupGuy->IsInWorld())
                 {
                     continue;
