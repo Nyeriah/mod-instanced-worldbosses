@@ -118,6 +118,10 @@ public:
                         ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
                     }
                 }
+                else
+                {
+                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME, 1);
+                }
             }
         }
     }
