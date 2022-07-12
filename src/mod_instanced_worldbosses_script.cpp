@@ -14,7 +14,8 @@
 enum Settings
 {
     SETTING_BOSS_TIME,
-    SETTING_BOSS_STATUS
+    SETTING_BOSS_STATUS,
+    SETTING_ALLOW_LOOT
 };
 
 enum Phases
@@ -22,6 +23,8 @@ enum Phases
     PHASE_NORMAL = 1,
     PHASE_OUTRO  = 2
 };
+
+const std::string ModInstancedBosses = "mod-instanced-worldbosses#";
 
 class GlobalModInstancedBossesScript : public GlobalScript
 {
@@ -49,13 +52,17 @@ public:
                     case 14890: // Tauerar
                         if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
-                            uint32 currentTimer = looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
-                            LOG_ERROR("sql.sql", "Step one");
-                            if (!looter->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
+                            if (looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_ALLOW_LOOT).value == 0)
                             {
-                                LOG_ERROR("sql.sql", "step two");
-                                looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                                looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS, 1);
+                                return true;
+                            }
+
+                            uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
+
+                            if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
+                            {
+                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS, 1);
                                 if (looter->GetSession())
                                 {
                                     ChatHandler(looter->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(looter->GetSession()->GetSessionDbLocaleIndex()));
@@ -66,8 +73,8 @@ public:
 
                             if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                             {
-                                looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                                looter->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(source.GetEntry()), SETTING_BOSS_STATUS, 1);
+                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_STATUS, 1);
                                 return false;
                             }
 
@@ -100,12 +107,12 @@ public:
 
         for (auto token : bossIds)
         {
-            if (uint32 currentTimer = player->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME).value)
+            if (uint32 currentTimer = player->GetPlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME).value)
             {
                 if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                 {
-                    player->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_TIME, 0);
-                    player->UpdatePlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(token), SETTING_BOSS_STATUS, 0);
+                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME, 0);
+                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_STATUS, 0);
                     if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
                     {
                         ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
@@ -188,11 +195,12 @@ public:
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
                 Player* groupGuy = itr->GetSource();
+
                 if (!groupGuy)
                 {
                     continue;
                 }
-
+                
                 if (!groupGuy->IsInWorld())
                 {
                     continue;
@@ -205,7 +213,7 @@ public:
 
                 if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing", 0))
                 {
-                    if (groupGuy->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+                    if (groupGuy->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
                     {
                         continue;
                     }
@@ -217,11 +225,14 @@ public:
                 {
                     HandleDebuffs(groupGuy, phase);
                 }
+
+                // This will lock loot and only allow those who are engaged to loot it.
+                groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
             }
         }
         else
         {
-            if (source->GetPlayerSetting("mod-instanced-worldbosses#" + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+            if (source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
             {
                 return;
             }
@@ -232,6 +243,9 @@ public:
             {
                 HandleDebuffs(source, phase);
             }
+
+            // This will lock loot and only allow those who are engaged to loot it.
+            source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
         }
     }
 
