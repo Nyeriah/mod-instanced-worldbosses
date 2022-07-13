@@ -148,6 +148,11 @@ public:
                 PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
                 _owner = player->GetGUID();
             }
+            else if (Player* player = enemy->GetCharmerOrOwnerPlayerOrPlayerItself())
+            {
+                PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
+                _owner = player->GetGUID();
+            }
         }
     }
 
