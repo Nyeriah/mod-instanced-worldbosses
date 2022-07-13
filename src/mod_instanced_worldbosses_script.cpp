@@ -52,11 +52,6 @@ public:
                     case 14890: // Tauerar
                         if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
-                            if (looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_ALLOW_LOOT).value == 0)
-                            {
-                                return true;
-                            }
-
                             uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
 
                             if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
