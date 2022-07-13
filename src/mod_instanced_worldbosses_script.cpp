@@ -236,7 +236,7 @@ public:
                 }
 
                 // This will lock loot and only allow those who are engaged to loot it.
-                groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
+                // groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
             }
         }
         else
@@ -254,7 +254,7 @@ public:
             }
 
             // This will lock loot and only allow those who are engaged to loot it.
-            source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
+            // source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
         }
     }
 
