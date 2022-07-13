@@ -189,7 +189,7 @@ public:
 
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
-                if (Player* player = killer->ToPlayer())
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
                     PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
             }
 
