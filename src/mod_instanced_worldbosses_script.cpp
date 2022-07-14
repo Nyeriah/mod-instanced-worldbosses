@@ -56,12 +56,7 @@ public:
 
                             if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
                             {
-                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS, 1);
-                                if (looter->GetSession())
-                                {
-                                    ChatHandler(looter->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->GetNameForLocaleIdx(looter->GetSession()->GetSessionDbLocaleIndex()));
-                                }
+
 
                                 return false;
                             }
@@ -189,6 +184,50 @@ public:
             }
 
             me->SetPhaseMask(PHASE_NORMAL, true);
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
+                LockPlayers(player, me->ToCreature());
+        }
+    }
+
+    void LockPlayers(Player* source, Creature* me)
+    {
+        if (Group* group = source->GetGroup())
+        {
+            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player* groupGuy = itr->GetSource();
+
+                if (!groupGuy)
+                {
+                    continue;
+                }
+
+                if (!groupGuy->IsInWorld())
+                {
+                    continue;
+                }
+
+                if (!groupGuy->IsWithinDist(me, 500.0f))
+                {
+                    continue;
+                }
+
+                groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 1);
+                if (groupGuy->GetSession())
+                {
+                    ChatHandler(groupGuy->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(groupGuy->GetSession()->GetSessionDbLocaleIndex()));
+                }
+            }
+        }
+        else
+        {
+            source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+            source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 1);
+            if (source->GetSession())
+            {
+                ChatHandler(source->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
+            }
         }
     }
 
