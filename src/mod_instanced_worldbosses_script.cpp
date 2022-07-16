@@ -118,24 +118,26 @@ public:
 
     void OnUnitEnterCombat(Unit* me, Unit* enemy) override
     {
-        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
-        {
-            return;
-        }
-
         if (me->ToCreature() && IsWorldBoss(me->GetEntry()))
         {
-            me->SetPhaseMask(PHASE_OUTRO, true);
+            Player* player = enemy->ToPlayer();
 
-            if (Player* player = enemy->ToPlayer())
+            if (!player)
             {
-                PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
-                _owner = player->GetGUID();
+                player = enemy->GetCharmerOrOwnerPlayerOrPlayerItself();
             }
-            else if (Player* player = enemy->GetCharmerOrOwnerPlayerOrPlayerItself())
+
+            if (!player)
             {
+                return;
+            }
+
+            _owner = player->GetGUID();
+
+            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            {
+                me->SetPhaseMask(PHASE_OUTRO, true);
                 PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
-                _owner = player->GetGUID();
             }
         }
     }
@@ -241,7 +243,6 @@ public:
                     }
                 }
             }
-
 
             source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
             source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 1);
