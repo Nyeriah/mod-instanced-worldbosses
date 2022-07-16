@@ -24,6 +24,12 @@ enum Phases
     PHASE_OUTRO  = 2
 };
 
+struct SaveData
+{
+    uint32 creatureId;
+    ObjectGuid _ownerGuid;
+};
+
 const std::string ModInstancedBosses = "mod-instanced-worldbosses#";
 
 class GlobalModInstancedBossesScript : public GlobalScript
@@ -139,6 +145,9 @@ public:
                 me->SetPhaseMask(PHASE_OUTRO, true);
                 PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
             }
+
+            SaveData data = SaveData(me->GetEntry(), _owner);
+            saveData[me->GetEntry()] = data;
         }
     }
 
@@ -158,6 +167,10 @@ public:
             }
 
             me->SetPhaseMask(PHASE_NORMAL, true);
+
+            _owner.Clear();
+
+            saveData.erase(me->GetEntry());
         }
     }
 
@@ -173,14 +186,16 @@ public:
             me->ToCreature()->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
             me->SaveRespawnTime();
 
+            ObjectGuid playerGUID = saveData[me->GetEntry()]._ownerGuid;
+
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
-                if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                     PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
             }
 
             me->SetPhaseMask(PHASE_NORMAL, true);
-            if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                 LockPlayers(player, me->ToCreature());
         }
     }
@@ -365,7 +380,9 @@ public:
         return false;
     }
 
-    ObjectGuid _owner;
+    private:
+        std::map<uint32, SaveData> saveData;
+        ObjectGuid _owner;
 };
 
 
