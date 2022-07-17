@@ -146,7 +146,9 @@ public:
                 PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
             }
 
-            SaveData data = SaveData(me->GetEntry(), _owner);
+            SaveData data;
+            data.creatureId = me->GetEntry();
+            data._ownerGuid = _owner;
             saveData[me->GetEntry()] = data;
         }
     }
