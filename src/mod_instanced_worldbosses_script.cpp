@@ -176,7 +176,7 @@ public:
         }
     }
 
-    void OnUnitDeath(Unit* me, Unit* killer) override
+    void OnUnitDeath(Unit* me, Unit* /*killer*/) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
         {
