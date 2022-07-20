@@ -303,6 +303,11 @@ public:
                 {
                     if (groupGuy->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
                     {
+                        if (groupGuy->GetSession())
+                        {
+                            ChatHandler(groupGuy->GetSession()).PSendSysMessage("Phasing failed: you are already saved to this boss (%s).", me->GetNameForLocaleIdx(groupGuy->GetSession()->GetSessionDbLocaleIndex()));
+                        }
+
                         continue;
                     }
                 }
@@ -322,6 +327,11 @@ public:
         {
             if (source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
             {
+                if (source->GetSession())
+                {
+                    ChatHandler(source->GetSession()).PSendSysMessage("Phasing failed: you are already saved to this boss (%s).", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
+                }
+
                 return;
             }
 
