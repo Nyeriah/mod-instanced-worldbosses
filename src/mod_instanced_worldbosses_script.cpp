@@ -176,7 +176,7 @@ public:
         }
     }
 
-    void OnUnitDeath(Unit* me, Unit* /*killer*/) override
+    void OnUnitDeath(Unit* me, Unit* killer) override
     {
         if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
         {
@@ -199,6 +199,16 @@ public:
             me->SetPhaseMask(PHASE_NORMAL, true);
             if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                 LockPlayers(player, me->ToCreature());
+        }
+        else if (IsWorldBoss(killer->GetEntry()))
+        {
+            if (Player* player = me->ToPlayer())
+            {
+                if (Corpse* corpse = player->GetCorpse())
+                {
+                    corpse->SetPhaseMask(PHASE_NORMAL, true);
+                }
+            }
         }
     }
 
