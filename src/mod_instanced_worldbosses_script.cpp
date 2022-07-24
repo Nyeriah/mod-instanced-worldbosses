@@ -200,16 +200,6 @@ public:
             if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                 LockPlayers(player, me->ToCreature());
         }
-        else if (IsWorldBoss(killer->GetEntry()))
-        {
-            if (Player* player = me->ToPlayer())
-            {
-                if (Corpse* corpse = player->GetCorpse())
-                {
-                    corpse->SetPhaseMask(PHASE_NORMAL, true);
-                }
-            }
-        }
     }
 
     void LockPlayers(Player* source, Creature* me)
@@ -324,6 +314,14 @@ public:
 
                 groupGuy->SetPhaseMask(phase, true);
 
+                if (!groupGuy->IsAlive() && phase == PHASE_NORMAL)
+                {
+                    if (Corpse* corpse = groupGuy->GetCorpse())
+                    {
+                        corpse->SetPhaseMask(PHASE_NORMAL, true);
+                    }
+                }
+
                 if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
                 {
                     HandleDebuffs(groupGuy, phase);
@@ -346,6 +344,14 @@ public:
             }
 
             source->SetPhaseMask(phase, true);
+
+            if (!source->IsAlive() && phase == PHASE_NORMAL)
+            {
+                if (Corpse* corpse = source->GetCorpse())
+                {
+                    corpse->SetPhaseMask(PHASE_NORMAL, true);
+                }
+            }
 
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
             {
