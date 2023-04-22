@@ -55,7 +55,9 @@ public:
                     case 14887: // Ysondre
                     case 14888: // Lethon
                     case 14889: // Emeriss
-                    case 14890: // Tauerar
+                    case 14890: // Taerar
+                    case 17711: // Doomwalker
+                    case 18728: // Doom Lord Kazzak
                         if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                         {
                             uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
@@ -401,7 +403,9 @@ public:
             case 14887: // Ysondre
             case 14888: // Lethon
             case 14889: // Emeriss
-            case 14890: // Tauerar
+            case 14890: // Taerar
+            case 17711: // Doomwalker
+            case 18728: // Doom Lord Kazzak
                 return true;
         }
 
