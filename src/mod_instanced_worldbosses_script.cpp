@@ -335,9 +335,11 @@ public:
         }
         else
         {
-            if (source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+            if (source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value)
             {
-                if (source->GetSession())
+                me->RemoveAllowedLooter(source->GetGUID());
+
+                if (source->GetSession() && phase == PHASE_OUTRO)
                 {
                     ChatHandler(source->GetSession()).PSendSysMessage("Phasing failed: you are already saved to this boss (%s).", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
                 }
