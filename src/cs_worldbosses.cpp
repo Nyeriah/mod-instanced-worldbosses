@@ -53,7 +53,7 @@ public:
     {
         Player* player = handler->GetPlayer();
 
-        std::vector<uint32> bossIds = { 6109, 12397, 14887, 14888, 14889, 14890, 17711, 1872 };
+        std::vector<uint32> bossIds = { 6109, 12397, 14887, 14888, 14889, 14890, 17711, 18728 };
 
         bool foundLocks = false;
 
