@@ -28,6 +28,7 @@ struct SaveData
 {
     uint32 creatureId;
     ObjectGuid _ownerGuid;
+    GuidSet groupPlayerGUIDS;
 };
 
 const std::string ModInstancedBosses = "mod-instanced-worldbosses#";
@@ -140,8 +141,6 @@ public:
                 return;
             }
 
-            _owner = player->GetGUID();
-
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
                 me->SetPhaseMask(PHASE_OUTRO, true);
@@ -150,7 +149,7 @@ public:
 
             SaveData data;
             data.creatureId = me->GetEntry();
-            data._ownerGuid = _owner;
+            data._ownerGuid = player->GetGUID();
             saveData[me->GetEntry()] = data;
         }
     }
@@ -166,13 +165,11 @@ public:
         {
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
-                if (Player* player = ObjectAccessor::FindConnectedPlayer(_owner))
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(saveData[me->GetEntry()]._ownerGuid))
                     PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
             }
 
             me->SetPhaseMask(PHASE_NORMAL, true);
-
-            _owner.Clear();
 
             saveData.erase(me->GetEntry());
         }
@@ -280,6 +277,8 @@ public:
 
     void PhaseOutPlayers(Player* source, uint8 phase, Creature* me)
     {
+        GuidSet groupPlayerGUIDS;
+
         if (Group* group = source->GetGroup())
         {
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
@@ -290,6 +289,8 @@ public:
                 {
                     continue;
                 }
+
+                saveData[me->GetEntry()].groupPlayerGUIDS.insert(groupGuy->GetGUID());
 
                 if (!groupGuy->IsInWorld())
                 {
@@ -365,6 +366,20 @@ public:
             // This will lock loot and only allow those who are engaged to loot it.
             // source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
         }
+
+        if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+        {
+            if (phase == PHASE_OUTRO)
+            {
+                for (ObjectGuid guid : saveData[me->GetEntry()].groupPlayerGUIDS)
+                {
+                    if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
+                    {
+                        HandleDebuffs(player, phase);
+                    }
+                }
+            }
+        }
     }
 
     void HandleDebuffs(Player* player, uint8 phase)
@@ -416,7 +431,6 @@ public:
 
     private:
         std::map<uint32, SaveData> saveData;
-        ObjectGuid _owner;
 };
 
 
