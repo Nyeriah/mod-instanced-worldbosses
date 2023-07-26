@@ -10,6 +10,7 @@
 #include "Config.h"
 #include "Chat.h"
 #include "Tokenize.h"
+#include "WorldBosses.h"
 
 enum Settings
 {
@@ -31,7 +32,46 @@ struct SaveData
     GuidSet groupPlayerGUIDS;
 };
 
+WorldBosses* WorldBosses::instance()
+{
+    static WorldBosses instance;
+    return &instance;
+}
+
+bool WorldBosses::IsWorldBoss(uint32 entry)
+{
+    switch (entry)
+    {
+        case 6109: // Azuregos
+        case 12397: // Lord Kazzak
+        case 14887: // Ysondre
+        case 14888: // Lethon
+        case 14889: // Emeriss
+        case 14890: // Taerar
+        case 17711: // Doomwalker
+        case 18728: // Doom Lord Kazzak
+            return true;
+    }
+
+    return false;
+}
+
 const std::string ModInstancedBosses = "mod-instanced-worldbosses#";
+
+class mod_instanced_worldbosses_worldscript : public WorldScript
+{
+public:
+    mod_instanced_worldbosses_worldscript() : WorldScript("mod_instanced_worldbosses_worldscript") { }
+
+    void OnAfterConfigLoad(bool /*reload*/) override
+    {
+        sWorldBosses->IsEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", false);
+    }
+
+    void OnStartup() override
+    {
+    }
+};
 
 class GlobalModInstancedBossesScript : public GlobalScript
 {
@@ -40,7 +80,7 @@ public:
 
     bool OnAllowedForPlayerLootCheck(Player const* player, ObjectGuid source) override
     {
-        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        if (!sWorldBosses->IsEnabled)
         {
             return false;
         }
@@ -49,37 +89,26 @@ public:
         {
             if (Creature* creature = ObjectAccessor::GetCreature(*player, source))
             {
-                switch (creature->GetEntry())
+                if (sWorldBosses->IsWorldBoss(creature->GetEntry()))
                 {
-                    case 6109: // Azuregos
-                    case 12397: // Lord Kazzak
-                    case 14887: // Ysondre
-                    case 14888: // Lethon
-                    case 14889: // Emeriss
-                    case 14890: // Taerar
-                    case 17711: // Doomwalker
-                    case 18728: // Doom Lord Kazzak
-                        if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
+                    if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
+                    {
+                        uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
+
+                        if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
                         {
-                            uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
-
-                            if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
-                            {
-                                return false;
-                            }
-
-                            if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
-                            {
-                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                                looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_STATUS, 1);
-                                return false;
-                            }
-
-                            return time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+                            return false;
                         }
-                        break;
-                    default:
-                        break;
+
+                        if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                        {
+                            looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                            looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_STATUS, 1);
+                            return false;
+                        }
+
+                        return time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+                    }
                 }
             }
         }
@@ -95,7 +124,7 @@ public:
 
     void OnLogin(Player* player) override
     {
-        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        if (!sWorldBosses->IsEnabled)
         {
             return;
         }
@@ -127,7 +156,12 @@ public:
 
     void OnUnitEnterCombat(Unit* me, Unit* enemy) override
     {
-        if (me->ToCreature() && IsWorldBoss(me->GetEntry()))
+        if (!sWorldBosses->IsEnabled)
+        {
+            return;
+        }
+
+        if (me->ToCreature() && sWorldBosses->IsWorldBoss(me->GetEntry()))
         {
             Player* player = enemy->ToPlayer();
 
@@ -156,12 +190,12 @@ public:
 
     void OnUnitEnterEvadeMode(Unit* me, uint8 /*evadeReason*/) override
     {
-        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        if (!sWorldBosses->IsEnabled)
         {
             return;
         }
 
-        if (IsWorldBoss(me->GetEntry()))
+        if (sWorldBosses->IsWorldBoss(me->GetEntry()))
         {
             if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
             {
@@ -177,12 +211,12 @@ public:
 
     void OnUnitDeath(Unit* me, Unit* killer) override
     {
-        if (!sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", 0))
+        if (!sWorldBosses->IsEnabled)
         {
             return;
         }
 
-        if (IsWorldBoss(me->GetEntry()))
+        if (sWorldBosses->IsWorldBoss(me->GetEntry()))
         {
             me->ToCreature()->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
             me->SaveRespawnTime();
@@ -409,24 +443,6 @@ public:
                 player->RemoveAura(*Acore::StringTo<uint32>(itemData.at(0)));
             }
         }
-    }
-
-    bool IsWorldBoss(uint32 entry)
-    {
-        switch (entry)
-        {
-            case 6109: // Azuregos
-            case 12397: // Lord Kazzak
-            case 14887: // Ysondre
-            case 14888: // Lethon
-            case 14889: // Emeriss
-            case 14890: // Taerar
-            case 17711: // Doomwalker
-            case 18728: // Doom Lord Kazzak
-                return true;
-        }
-
-        return false;
     }
 
     private:
