@@ -453,4 +453,5 @@ void Addmod_instanced_worldbosses_script()
     new GlobalModInstancedBossesScript();
     new ModInstancedBossesPlayerScript();
     new unit_worldbosses_script();
+    new mod_instanced_worldbosses_worldscript();
 }
