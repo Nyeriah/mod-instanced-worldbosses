@@ -13,7 +13,9 @@ public:
 
     bool IsEnabled{ false };
     bool IsPhasingEnabled{ false };
+    bool IsTuningEnabled{ false };
     [[nodiscard]] bool IsWorldBoss(uint32 entry);
+    [[nodiscard]] bool IsPlayerSaved(Player* player, uint32 entry);
     [[nodiscard]] std::string GetSettingSourceStr(uint32 entry) { return ModInstancedBosses + Acore::ToString(entry); };
 };
 

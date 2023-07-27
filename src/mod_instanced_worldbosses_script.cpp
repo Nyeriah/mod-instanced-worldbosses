@@ -56,6 +56,11 @@ bool WorldBosses::IsWorldBoss(uint32 entry)
     return false;
 }
 
+bool WorldBosses::IsPlayerSaved(Player* player, uint32 entry)
+{
+    return player->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(entry), SETTING_BOSS_STATUS).value;
+}
+
 class mod_instanced_worldbosses_worldscript : public WorldScript
 {
 public:
@@ -65,10 +70,7 @@ public:
     {
         sWorldBosses->IsEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", false);
         sWorldBosses->IsPhasingEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", false);
-    }
-
-    void OnStartup() override
-    {
+        sWorldBosses->IsTuningEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", false);
     }
 };
 
@@ -92,9 +94,9 @@ public:
                 {
                     if (Player* looter = ObjectAccessor::FindConnectedPlayer(player->GetGUID()))
                     {
-                        uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
+                        uint32 currentTimer = looter->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_TIME).value;
 
-                        if (!looter->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(creature->GetEntry()), SETTING_BOSS_STATUS).value)
+                        if (!sWorldBosses->IsPlayerSaved(looter, source.GetEntry()))
                         {
                             return false;
                         }
@@ -270,7 +272,7 @@ public:
                     }
                 }
 
-                if (!groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
+                if (!sWorldBosses->IsPlayerSaved(groupGuy, me->GetEntry()))
                 {
                     groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
                     groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
@@ -296,7 +298,7 @@ public:
                 }
             }
 
-            if (!source->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
+            if (!sWorldBosses->IsPlayerSaved(source, me->GetEntry()))
             {
                 source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
                 source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
@@ -358,7 +360,7 @@ public:
                     }
                 }
 
-                if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+                if (sWorldBosses->IsTuningEnabled)
                 {
                     HandleDebuffs(groupGuy, phase);
                 }
@@ -369,7 +371,7 @@ public:
         }
         else
         {
-            if (source->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
+            if (sWorldBosses->IsPlayerSaved(source, me->GetEntry()))
             {
                 me->RemoveAllowedLooter(source->GetGUID());
 
@@ -391,7 +393,7 @@ public:
                 }
             }
 
-            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+            if (sWorldBosses->IsTuningEnabled)
             {
                 HandleDebuffs(source, phase);
             }
@@ -400,16 +402,13 @@ public:
             // source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
         }
 
-        if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", 0))
+        if (sWorldBosses->IsTuningEnabled)
         {
-            if (phase == PHASE_OUTRO)
+            for (ObjectGuid guid : saveData[me->GetEntry()].groupPlayerGUIDS)
             {
-                for (ObjectGuid guid : saveData[me->GetEntry()].groupPlayerGUIDS)
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
                 {
-                    if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
-                    {
-                        HandleDebuffs(player, phase);
-                    }
+                    HandleDebuffs(player, phase);
                 }
             }
         }
@@ -435,7 +434,11 @@ public:
 
             if (phase == PHASE_OUTRO)
             {
-                player->CastCustomSpell(spellId, SPELLVALUE_BASE_POINT0, pct, player);
+                // The auras can stack...
+                if (!player->HasAura(spellId))
+                {
+                    player->CastCustomSpell(spellId, SPELLVALUE_BASE_POINT0, pct, player);
+                }
             }
             else
             {
