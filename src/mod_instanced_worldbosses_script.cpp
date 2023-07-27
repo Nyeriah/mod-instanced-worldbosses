@@ -56,8 +56,6 @@ bool WorldBosses::IsWorldBoss(uint32 entry)
     return false;
 }
 
-const std::string ModInstancedBosses = "mod-instanced-worldbosses#";
-
 class mod_instanced_worldbosses_worldscript : public WorldScript
 {
 public:
@@ -66,6 +64,7 @@ public:
     void OnAfterConfigLoad(bool /*reload*/) override
     {
         sWorldBosses->IsEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", false);
+        sWorldBosses->IsPhasingEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", false);
     }
 
     void OnStartup() override
@@ -95,15 +94,15 @@ public:
                     {
                         uint32 currentTimer = looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME).value;
 
-                        if (!looter->GetPlayerSetting(ModInstancedBosses + Acore::ToString(creature->GetEntry()), SETTING_BOSS_STATUS).value)
+                        if (!looter->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(creature->GetEntry()), SETTING_BOSS_STATUS).value)
                         {
                             return false;
                         }
 
                         if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                         {
-                            looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                            looter->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(source.GetEntry()), SETTING_BOSS_STATUS, 1);
+                            looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                            looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_STATUS, 1);
                             return false;
                         }
 
@@ -137,8 +136,8 @@ public:
             {
                 if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                 {
-                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME, 0);
-                    player->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_STATUS, 0);
+                    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_TIME, 0);
+                    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_STATUS, 0);
                     if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
                     {
                         ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
@@ -175,7 +174,7 @@ public:
                 return;
             }
 
-            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            if (sWorldBosses->IsPhasingEnabled)
             {
                 me->SetPhaseMask(PHASE_OUTRO, true);
                 PhaseOutPlayers(player, PHASE_OUTRO, me->ToCreature());
@@ -197,7 +196,7 @@ public:
 
         if (sWorldBosses->IsWorldBoss(me->GetEntry()))
         {
-            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            if (sWorldBosses->IsPhasingEnabled)
             {
                 if (Player* player = ObjectAccessor::FindConnectedPlayer(saveData[me->GetEntry()]._ownerGuid))
                     PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
@@ -223,7 +222,7 @@ public:
 
             ObjectGuid playerGUID = saveData[me->GetEntry()]._ownerGuid;
 
-            if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", 0))
+            if (sWorldBosses->IsPhasingEnabled)
             {
                 if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                     PhaseOutPlayers(player, PHASE_NORMAL, me->ToCreature());
@@ -258,12 +257,12 @@ public:
                     continue;
                 }
 
-                if (uint32 currentTimer = groupGuy->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME).value)
+                if (uint32 currentTimer = groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME).value)
                 {
                     if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                     {
-                        groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, 0);
-                        groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 0);
+                        groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
+                        groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
                         if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(me->GetEntry()))
                         {
                             ChatHandler(groupGuy->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
@@ -271,10 +270,10 @@ public:
                     }
                 }
 
-                if (!groupGuy->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value)
+                if (!groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
                 {
-                    groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                    groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 1);
+                    groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                    groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
                     if (groupGuy->GetSession())
                     {
                         ChatHandler(groupGuy->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(groupGuy->GetSession()->GetSessionDbLocaleIndex()));
@@ -288,8 +287,8 @@ public:
             {
                 if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
                 {
-                    source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, 0);
-                    source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 0);
+                    source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
+                    source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
                     if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(me->GetEntry()))
                     {
                         ChatHandler(source->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
@@ -297,10 +296,10 @@ public:
                 }
             }
 
-            if (!source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value)
+            if (!source->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
             {
-                source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS, 1);
+                source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
+                source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
                 if (source->GetSession())
                 {
                     ChatHandler(source->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
@@ -338,7 +337,7 @@ public:
 
                 if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing", 0))
                 {
-                    if (groupGuy->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+                    if (groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
                     {
                         if (groupGuy->GetSession())
                         {
@@ -370,7 +369,7 @@ public:
         }
         else
         {
-            if (source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_STATUS).value)
+            if (source->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value)
             {
                 me->RemoveAllowedLooter(source->GetGUID());
 
