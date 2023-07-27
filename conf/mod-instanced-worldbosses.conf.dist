@@ -32,6 +32,15 @@ ModInstancedWorldBosses.ResetTimerSecs = 25920
 
 ModInstancedWorldBosses.RespawnTimerSecs = 3600
 
+#
+#    ModInstancedWorldBosses.GracePeriodSecs.
+#        Description: During this time, players are allowed to receive loot regardless of being locked. Set in seconds.
+#                     This is necessary as otherwise instant locks would lock them out of the boss they have just killed.
+#        Default:    300 seconds (5 minutes)
+#
+
+ModInstancedWorldBosses.GracePeriodSecs = 300
+
 #    ModInstancedWorldBosses.PhaseBosses
 #        Description: Phases players out when engaging bosses.
 #        Default:     0 - Disabled

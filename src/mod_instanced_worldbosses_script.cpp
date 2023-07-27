@@ -97,6 +97,7 @@ public:
         sWorldBosses->IsTuningEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", false);
         sWorldBosses->BossRespawnTimerSecs = sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR);
         sWorldBosses->BossLockoutResetSecs = sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200);
+        sWorldBosses->GracePeriod = sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.GracePeriodSecs", 300);
     }
 };
 
@@ -133,7 +134,7 @@ public:
                             return false;
                         }
 
-                        return time(nullptr) >= (currentTimer + sWorldBosses->BossRespawnTimerSecs);
+                        return time(nullptr) >= (currentTimer + sWorldBosses->GracePeriod);
                     }
                 }
             }
@@ -369,18 +370,6 @@ public:
         }
         else
         {
-            if (sWorldBosses->IsPlayerSaved(source, me->GetEntry()))
-            {
-                me->RemoveAllowedLooter(source->GetGUID());
-
-                if (source->GetSession() && phase == PHASE_OUTRO)
-                {
-                    ChatHandler(source->GetSession()).PSendSysMessage("Phasing failed: you are already saved to this boss (%s).", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
-                }
-
-                return;
-            }
-
             source->SetPhaseMask(phase, true);
 
             if (!source->IsAlive() && phase == PHASE_NORMAL)
@@ -403,6 +392,16 @@ public:
             {
                 if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
                 {
+                    if (sWorldBosses->IsPlayerSaved(player, me->GetEntry()))
+                    {
+                        me->RemoveAllowedLooter(player->GetGUID());
+
+                        if (player->GetSession() && phase == PHASE_OUTRO)
+                        {
+                            ChatHandler(player->GetSession()).PSendSysMessage("You are already saved to this boss (%s).", me->GetNameForLocaleIdx(player->GetSession()->GetSessionDbLocaleIndex()));
+                        }
+                    }
+
                     HandleDebuffs(player, phase);
                 }
             }
