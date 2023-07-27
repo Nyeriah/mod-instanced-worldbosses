@@ -25,6 +25,12 @@ enum Phases
     PHASE_OUTRO  = 2
 };
 
+enum SaveStatus
+{
+    STATUS_UNLOCKED  = 0,
+    STATUS_SAVED     = 1
+};
+
 struct SaveData
 {
     uint32 creatureId;
@@ -59,6 +65,24 @@ bool WorldBosses::IsWorldBoss(uint32 entry)
 bool WorldBosses::IsPlayerSaved(Player* player, uint32 entry)
 {
     return player->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(entry), SETTING_BOSS_STATUS).value;
+}
+
+void WorldBosses::SetSaveStatus(Player* player, uint32 entry, uint8 status)
+{
+    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(entry), SETTING_BOSS_TIME, status == STATUS_SAVED ? time(nullptr) : 0);
+    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(entry), SETTING_BOSS_STATUS, status);
+
+    if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(entry))
+    {
+        if (status == STATUS_UNLOCKED)
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
+        }
+        else
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", creature->Name);
+        }
+    }
 }
 
 class mod_instanced_worldbosses_worldscript : public WorldScript
@@ -105,8 +129,7 @@ public:
 
                         if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                         {
-                            looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                            looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_STATUS, 1);
+                            sWorldBosses->SetSaveStatus(looter, source.GetEntry(), STATUS_SAVED);
                             return false;
                         }
 
@@ -140,12 +163,7 @@ public:
             {
                 if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                 {
-                    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_TIME, 0);
-                    player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_STATUS, 0);
-                    if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
-                    {
-                        ChatHandler(player->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
-                    }
+                    sWorldBosses->SetSaveStatus(player, token, STATUS_UNLOCKED);
                 }
             }
         }
@@ -265,23 +283,13 @@ public:
                 {
                     if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                     {
-                        groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
-                        groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
-                        if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(me->GetEntry()))
-                        {
-                            ChatHandler(groupGuy->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
-                        }
+                        sWorldBosses->SetSaveStatus(groupGuy, me->GetEntry(), STATUS_UNLOCKED);
                     }
                 }
 
                 if (!sWorldBosses->IsPlayerSaved(groupGuy, me->GetEntry()))
                 {
-                    groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                    groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
-                    if (groupGuy->GetSession())
-                    {
-                        ChatHandler(groupGuy->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(groupGuy->GetSession()->GetSessionDbLocaleIndex()));
-                    }
+                    sWorldBosses->SetSaveStatus(groupGuy, me->GetEntry(), STATUS_SAVED);
                 }
             }
         }
@@ -291,23 +299,14 @@ public:
             {
                 if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                 {
-                    source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
-                    source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
-                    if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(me->GetEntry()))
-                    {
-                        ChatHandler(source->GetSession()).PSendSysMessage("Your lock for %s has reset.", creature->Name);
-                    }
+                    sWorldBosses->SetSaveStatus(source, me->GetEntry(), STATUS_UNLOCKED);
+
                 }
             }
 
             if (!sWorldBosses->IsPlayerSaved(source, me->GetEntry()))
             {
-                source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, time(nullptr));
-                source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 1);
-                if (source->GetSession())
-                {
-                    ChatHandler(source->GetSession()).PSendSysMessage("You are now locked to this boss (%s) and may not receive loot until the lock expires.", me->GetNameForLocaleIdx(source->GetSession()->GetSessionDbLocaleIndex()));
-                }
+                sWorldBosses->SetSaveStatus(source, me->GetEntry(), STATUS_SAVED);
             }
         }
     }
@@ -341,7 +340,7 @@ public:
 
                 if (sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.SkipSavedPlayersWhenPhasing", 0))
                 {
-                    if (groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS).value && phase == PHASE_OUTRO)
+                    if (sWorldBosses->IsPlayerSaved(groupGuy, me->GetEntry()) && phase == PHASE_OUTRO)
                     {
                         if (groupGuy->GetSession())
                         {
