@@ -71,6 +71,8 @@ public:
         sWorldBosses->IsEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Enable", false);
         sWorldBosses->IsPhasingEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.PhaseBosses", false);
         sWorldBosses->IsTuningEnabled = sConfigMgr->GetOption<bool>("ModInstancedWorldBosses.Tuning", false);
+        sWorldBosses->BossRespawnTimerSecs = sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR);
+        sWorldBosses->BossLockoutResetSecs = sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200);
     }
 };
 
@@ -101,14 +103,14 @@ public:
                             return false;
                         }
 
-                        if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                        if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                         {
                             looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_TIME, time(nullptr));
                             looter->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(source.GetEntry()), SETTING_BOSS_STATUS, 1);
                             return false;
                         }
 
-                        return time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+                        return time(nullptr) >= (currentTimer + sWorldBosses->BossRespawnTimerSecs);
                     }
                 }
             }
@@ -136,7 +138,7 @@ public:
         {
             if (uint32 currentTimer = player->GetPlayerSetting(ModInstancedBosses + Acore::ToString(token), SETTING_BOSS_TIME).value)
             {
-                if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                 {
                     player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_TIME, 0);
                     player->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(token), SETTING_BOSS_STATUS, 0);
@@ -219,7 +221,7 @@ public:
 
         if (sWorldBosses->IsWorldBoss(me->GetEntry()))
         {
-            me->ToCreature()->SetRespawnTime(sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.RespawnTimerSecs", HOUR));
+            me->ToCreature()->SetRespawnTime(sWorldBosses->BossRespawnTimerSecs);
             me->SaveRespawnTime();
 
             ObjectGuid playerGUID = saveData[me->GetEntry()]._ownerGuid;
@@ -261,7 +263,7 @@ public:
 
                 if (uint32 currentTimer = groupGuy->GetPlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME).value)
                 {
-                    if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                    if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                     {
                         groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
                         groupGuy->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
@@ -287,7 +289,7 @@ public:
         {
             if (uint32 currentTimer = source->GetPlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_BOSS_TIME).value)
             {
-                if (time(nullptr) >= (currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200))) // 3 days
+                if (time(nullptr) >= (currentTimer + sWorldBosses->BossLockoutResetSecs))
                 {
                     source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_TIME, 0);
                     source->UpdatePlayerSetting(sWorldBosses->GetSettingSourceStr(me->GetEntry()), SETTING_BOSS_STATUS, 0);
@@ -364,9 +366,6 @@ public:
                 {
                     HandleDebuffs(groupGuy, phase);
                 }
-
-                // This will lock loot and only allow those who are engaged to loot it.
-                // groupGuy->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
             }
         }
         else
@@ -397,9 +396,6 @@ public:
             {
                 HandleDebuffs(source, phase);
             }
-
-            // This will lock loot and only allow those who are engaged to loot it.
-            // source->UpdatePlayerSetting(ModInstancedBosses + Acore::ToString(me->GetEntry()), SETTING_ALLOW_LOOT, phase == PHASE_OUTRO ? 0 : 1);
         }
 
         if (sWorldBosses->IsTuningEnabled)
