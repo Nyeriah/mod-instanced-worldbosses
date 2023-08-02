@@ -254,6 +254,8 @@ public:
             me->SetPhaseMask(PHASE_NORMAL, true);
             if (Player* player = ObjectAccessor::FindConnectedPlayer(playerGUID))
                 LockPlayers(player, me->ToCreature());
+
+            saveData.erase(me->GetEntry());
         }
     }
 
@@ -395,11 +397,6 @@ public:
                     if (sWorldBosses->IsPlayerSaved(player, me->GetEntry()))
                     {
                         me->RemoveAllowedLooter(player->GetGUID());
-
-                        if (player->GetSession() && phase == PHASE_OUTRO)
-                        {
-                            ChatHandler(player->GetSession()).PSendSysMessage("You are already saved to this boss (%s).", me->GetNameForLocaleIdx(player->GetSession()->GetSessionDbLocaleIndex()));
-                        }
                     }
 
                     HandleDebuffs(player, phase);
