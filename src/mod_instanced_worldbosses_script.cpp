@@ -106,7 +106,7 @@ class GlobalModInstancedBossesScript : public GlobalScript
 public:
     GlobalModInstancedBossesScript() : GlobalScript("GlobalModInstancedBossesScript") { }
 
-    bool OnAllowedForPlayerLootCheck(Player const* player, ObjectGuid source) override
+    bool IsAllowedToLoot(Player const* player, ObjectGuid source)
     {
         if (!sWorldBosses->IsEnabled)
         {
@@ -141,6 +141,18 @@ public:
         }
 
         return false;
+    }
+
+    // Called when the item pops (e.g clicked mob, group loot, master loot list. etc.)
+    bool OnAllowedForPlayerLootCheck(Player const* player, ObjectGuid source) override
+    {
+        return IsAllowedToLoot(player, source);
+    }
+
+    // Called when trying to click corpse
+    bool OnAllowedToLootContainerCheck(Player const* player, ObjectGuid source) override
+    {
+        return IsAllowedToLoot(player, source);
     }
 };
 
