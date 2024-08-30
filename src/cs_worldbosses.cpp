@@ -76,7 +76,7 @@ public:
                     if (CreatureTemplate const* creature = sObjectMgr->GetCreatureTemplate(token))
                     {
                         tm tmBan = Acore::Time::TimeBreakdown(currentTimer + sConfigMgr->GetOption<uint32>("ModInstancedWorldBosses.ResetTimerSecs", 259200));
-                        handler->PSendSysMessage("Your lock for {} expires in |{:%Y-%m-%d %H:%M}|.", creature->Name, tmBan);
+                        handler->PSendSysMessage("Your lock for {} expires in |{%02d-%02d-%02d %02d:%02d}|.", creature->Name, tmBan);
                     }
                 }
             }
