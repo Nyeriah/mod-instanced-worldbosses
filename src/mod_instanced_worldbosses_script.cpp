@@ -244,7 +244,7 @@ public:
         }
     }
 
-    void OnUnitDeath(Unit* me, Unit* killer) override
+    void OnUnitDeath(Unit* me, Unit* /*killer*/) override
     {
         if (!sWorldBosses->IsEnabled)
         {
