@@ -162,7 +162,7 @@ class ModInstancedBossesPlayerScript : public PlayerScript
 public:
     ModInstancedBossesPlayerScript() : PlayerScript("ModInstancedBossesPlayerScript") { }
 
-    void OnLogin(Player* player) override
+    void OnPlayerLogin(Player* player) override
     {
         if (!sWorldBosses->IsEnabled)
         {
