@@ -89,7 +89,9 @@ void WorldBosses::SetSaveStatus(Player* player, uint32 entry, uint8 status)
 class mod_instanced_worldbosses_worldscript : public WorldScript
 {
 public:
-    mod_instanced_worldbosses_worldscript() : WorldScript("mod_instanced_worldbosses_worldscript") { }
+    mod_instanced_worldbosses_worldscript() : WorldScript("mod_instanced_worldbosses_worldscript", {
+        WORLDHOOK_ON_AFTER_CONFIG_LOAD
+    }) { }
 
     void OnAfterConfigLoad(bool /*reload*/) override
     {
@@ -105,7 +107,10 @@ public:
 class GlobalModInstancedBossesScript : public GlobalScript
 {
 public:
-    GlobalModInstancedBossesScript() : GlobalScript("GlobalModInstancedBossesScript") { }
+    GlobalModInstancedBossesScript() : GlobalScript("GlobalModInstancedBossesScript", {
+        GLOBALHOOK_ON_ALLOWED_FOR_PLAYER_LOOT_CHECK,
+        GLOBALHOOK_ON_ALLOWED_TO_LOOT_CONTAINER_CHECK
+    }) { }
 
     bool IsAllowedToLoot(Player const* player, ObjectGuid source)
     {
@@ -160,7 +165,9 @@ public:
 class ModInstancedBossesPlayerScript : public PlayerScript
 {
 public:
-    ModInstancedBossesPlayerScript() : PlayerScript("ModInstancedBossesPlayerScript") { }
+    ModInstancedBossesPlayerScript() : PlayerScript("ModInstancedBossesPlayerScript", {
+        PLAYERHOOK_ON_LOGIN
+    }) { }
 
     void OnPlayerLogin(Player* player) override
     {
@@ -187,7 +194,11 @@ public:
 class unit_worldbosses_script : public UnitScript
 {
 public:
-    unit_worldbosses_script() : UnitScript("unit_worldbosses_script") { }
+    unit_worldbosses_script() : UnitScript("unit_worldbosses_script", true, {
+        UNITHOOK_ON_UNIT_ENTER_COMBAT,
+        UNITHOOK_ON_UNIT_ENTER_EVADE_MODE,
+        UNITHOOK_ON_UNIT_DEATH
+    }) { }
 
     void OnUnitEnterCombat(Unit* me, Unit* enemy) override
     {
